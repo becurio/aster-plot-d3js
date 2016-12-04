@@ -1,6 +1,7 @@
-var express = require('express')
-var app = express()
+var express = require('express');
+var app = express();
 
+app.use(express.static('static'));
 app.set('port', (process.env.PORT || 5000));
 
 app.get('/', function (req, res) {
