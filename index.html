@@ -1,0 +1,251 @@
+<html>
+  <head>
+  <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  <style>
+    .circle {
+      fill: rgb(170,170,170);
+    }
+    .trait {
+      fill: rgba(230,81,0,1);
+    }
+  </style>
+  </head>
+  <body>
+  <script>
+    var width = 650;
+    var height = 650;
+    var MAX_STRENGTH = 8;
+    var TRAITS = ['Empathetic', 'Good-Natured', 'Tough-Minded', 'Individualistic',
+    'Risk-Taker', 'Explorer', 'Disciplined', 'Risk-Averse',
+    'Avoidant', 'Easygoing', 'Go-Getter', 'Goal-Oriented',
+    'Political', 'Superficial', 'Idealistic', 'Mature'];
+
+    var CIRCLE_WIDTH = 1.5;
+    var SPACE_BETWEEN_CIRCLE = width / (MAX_STRENGTH * 3.33);
+    var TEXT_MARGIN = .95;
+    var LINE_COLOR = "rgb(170,170,170)";
+    var LINE_WIDTH = 1.25;
+
+    var AXES_TEXT = ['Growth', 'Outward', 'Assertion', 'Inward'];
+    var AXES_COLOR = "rgb(10,10,10)";
+    var AXES_WIDTH = 5;
+    var AXES_LENGTH = Math.sqrt(1.5) * width / 3.25;
+    var AXES_MARGIN = 1.05;
+    var QUADRANT_TEXT = ['Risk & Novelty', 'Task Execution', 'Maturity & Judgment', 'Relating to Others'];
+    var QUADRANT_MARGIN = 1.15;
+
+    var svg = d3.select("body")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .append("g")
+        .attr("transform", "translate(" + width / 2 + "," + height / 2 + " )");
+
+    // draws "strengths" circles onto svg
+    var circles_radii = [];
+
+    for(var i = 0; i < MAX_STRENGTH; i++) {
+      circles_radii.push((i + 1) * SPACE_BETWEEN_CIRCLE);
+    }
+
+    var draw_circles = d3.svg.arc()
+        .innerRadius(function (d) {
+          console.log(d);
+          return d;
+        })
+        .outerRadius(function (d) {
+          return d + CIRCLE_WIDTH;
+        })
+        .startAngle(0)
+        .endAngle(2 * Math.PI);
+
+    // fill the trait strengths
+    var trait_strengths = TRAITS.map(function (trait, index) {
+      var start = index / (TRAITS.length / 2) * Math.PI;
+      var end = (index + 1) / (TRAITS.length / 2) * Math.PI;
+      var middle = (start + end) / 2;
+      return {
+        id: trait,
+        strength: Math.ceil((Math.random() * MAX_STRENGTH)),
+        start: start,
+        end: end,
+        text_coord: [AXES_LENGTH * TEXT_MARGIN * Math.cos(middle), AXES_LENGTH * TEXT_MARGIN * Math.sin(middle)],
+        text_angle: middle
+      }
+    });
+
+    var draw_traits = d3.svg.arc()
+        .innerRadius(0)
+        .outerRadius(function (d) {
+          return d.strength * SPACE_BETWEEN_CIRCLE;
+        })
+        .startAngle(function (d) {
+          return d.start;
+        })
+        .endAngle(function (d) {
+          return d.end;
+        });
+
+    svg.selectAll(".trait")
+    .data(trait_strengths)
+    .enter()
+    .append("path")
+    .attr("class", "trait")
+    .attr("d", draw_traits);
+
+    svg.selectAll(".circle")
+    .data(circles_radii)
+    .enter()
+    .append("path")
+    .attr("class", "circle")
+    .attr("d", draw_circles);
+
+    //fill trait text
+    svg.selectAll(".trait_text")
+    .data(trait_strengths)
+    .enter()
+    .append("text")
+    .style("fill", "black")
+    .style("font-size", "12px")
+    .attr("text-anchor", "middle")
+    .attr("font-family", "Arial")
+    .attr("transform", function (d, i) {
+      var angle = (90 + d.text_angle * 180 / Math.PI);
+      if(i >= 0 && i < 8) { // these are the traits whose texts needs to be reversed 180 degrees
+        console.log(i)
+        angle += 180;
+      }
+      return "translate(" + d.text_coord[0] + "," + d.text_coord[1] + ") rotate(" + angle + ")";
+    })
+    .text(function (d) {
+      return d.id;
+    });
+
+    //fill quadrant text
+    svg.selectAll(".quadrant_text")
+    .data(QUADRANT_TEXT)
+    .enter()
+    .append("text")
+    .style("fill", "black")
+    .style("font-size", "14px")
+    .attr("text-anchor", "middle")
+    .attr("font-family", "Arial")
+    .attr("transform", function (d, i) {
+      var angle = 45 + i * 90;
+      var xCoord = AXES_LENGTH * QUADRANT_MARGIN * Math.cos(angle * Math.PI / 180);
+      var yCoord = AXES_LENGTH * QUADRANT_MARGIN * Math.sin(angle * Math.PI / 180);
+
+      if(i !== 0 && i !== 1) {
+        angle += 90;
+      }
+      else {
+        angle -= 90;
+      }
+      return "translate(" + xCoord + "," + yCoord + ") rotate(" + angle + ")";
+    })
+    .text(function (d) {
+      return d;
+    })
+
+    //fill axes text
+    svg.selectAll(".axes_text")
+    .data(AXES_TEXT)
+    .enter()
+    .append("text")
+    .style("fill", "black")
+    .style("font-size", "12px")
+    .attr("text-anchor", function (d, i) {
+      switch(i) {
+        case 0:
+          return "start";
+          break;
+        case 1:
+          return "middle"
+          break;
+        case 2:
+          return "end"
+          break;
+        case 3:
+          return "middle"
+          break;
+      }
+    })
+    .attr("font-family", "Arial")
+    .attr("transform", function (d, i) {
+      var xCoord;
+      var yCoord;
+      var lengthWithMargin = AXES_LENGTH * AXES_MARGIN;
+      switch(i) {
+        case 0:
+          xCoord = lengthWithMargin;
+          yCoord = 0;
+          break;
+        case 1:
+          xCoord = 0;
+          yCoord = -1 * lengthWithMargin;
+          break;
+        case 2:
+          xCoord = -1 * lengthWithMargin;
+          yCoord = 0;
+          break;
+        case 3:
+          xCoord = 0;
+          yCoord = lengthWithMargin;
+          break;
+      }
+      return "translate(" + xCoord + "," + yCoord + ")";
+    })
+    .text(function (d) {
+      return d;
+    })
+
+    //draw the lines / axes
+    var lineData = [];
+    for(var i = 0; i < TRAITS.length / 2; i++) {
+      var cosX = Math.cos(i / (TRAITS.length / 2) * Math.PI);
+      var cosY = Math.sin(i / (TRAITS.length / 2) * Math.PI);
+      var xCoordinate = (AXES_LENGTH * cosX);
+      var yCoordinate = (AXES_LENGTH * cosY);
+      lineData.push([{"x": xCoordinate, "y": yCoordinate},
+      {"x": -1 * xCoordinate, "y": -1 * yCoordinate}]);
+    }
+
+    var axesData = [
+      [{"x": 0, "y": AXES_LENGTH},
+      {"x": 0, "y": -1 * AXES_LENGTH}],
+      [{"x": AXES_LENGTH, "y": 0},
+      {"x": -1 * AXES_LENGTH, "y": 0}]
+    ];
+
+    var line = d3.svg.line()
+    .x(function(d) {
+      return d.x;
+    })
+    .y(function(d) {
+      return d.y;
+    });
+
+    svg.selectAll(".line")
+    .data(lineData)
+    .enter()
+    .append("path")
+    .attr("d", function (d) {
+      console.log(d);
+      return line(d);
+    })
+    .attr("stroke", LINE_COLOR)
+    .attr("stroke-width", LINE_WIDTH);
+
+    svg.selectAll(".axes")
+    .data(axesData)
+    .enter()
+    .append("path")
+    .attr("d", function (d) {
+      console.log(d);
+      return line(d);
+    })
+    .attr("stroke", AXES_COLOR)
+    .attr("stroke-width", AXES_WIDTH);
+  </script>
+  </body>
+</html>

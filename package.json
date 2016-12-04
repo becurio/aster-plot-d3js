@@ -1,0 +1,14 @@
+{
+  "name": "asterplot",
+  "version": "1.0.0",
+  "description": "A d3.js aster plot graph to show behavioral strengths",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Zhong",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.14.0"
+  }
+}
