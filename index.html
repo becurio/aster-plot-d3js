@@ -5,20 +5,24 @@
     .circle {
       fill: rgb(170,170,170);
     }
-    .trait {
-      fill: rgba(230,81,0,1);
-    }
   </style>
   </head>
   <body>
+    <button type="button" onclick="highlightQuadrant('Relating to Others')">Relating to Others</button>
+    <button type="button" onclick="highlightQuadrant('Risk & Novelty')">Risk & Novelty</button>
+    <button type="button" onclick="highlightQuadrant('Task Execution')">Task Execution</button>
+    <button type="button" onclick="highlightQuadrant('Maturity & Judgment')">Maturity & Judgment</button>
   <script>
     var width = 650;
     var height = 650;
     var MAX_STRENGTH = 8;
-    var TRAITS = ['Empathetic', 'Good-Natured', 'Tough-Minded', 'Individualistic',
+    var TRAITS = [
+    'Empathetic', 'Good-Natured', 'Tough-Minded', 'Individualistic',
     'Risk-Taker', 'Explorer', 'Disciplined', 'Risk-Averse',
     'Avoidant', 'Easygoing', 'Go-Getter', 'Goal-Oriented',
     'Political', 'Superficial', 'Idealistic', 'Mature'];
+    var UNHIGHLIGHTED_TRAIT_COLOR = "rgba(230,81,0,0.7)";
+    var HIGHLIGHTED_TRAIT_COLOR = "rgba(230,81,0,1)";
 
     var CIRCLE_WIDTH = 1.5;
     var SPACE_BETWEEN_CIRCLE = width / (MAX_STRENGTH * 3.33);
@@ -31,7 +35,7 @@
     var AXES_WIDTH = 5;
     var AXES_LENGTH = Math.sqrt(1.5) * width / 3.25;
     var AXES_MARGIN = 1.05;
-    var QUADRANT_TEXT = ['Risk & Novelty', 'Task Execution', 'Maturity & Judgment', 'Relating to Others'];
+    var QUADRANT_TEXT = ['Relating to Others', 'Risk & Novelty', 'Task Execution', 'Maturity & Judgment'];
     var QUADRANT_MARGIN = 1.15;
 
     var svg = d3.select("body")
@@ -64,16 +68,37 @@
       var start = index / (TRAITS.length / 2) * Math.PI;
       var end = (index + 1) / (TRAITS.length / 2) * Math.PI;
       var middle = (start + end) / 2;
+      var quadrant;
+      var hemisphere;
+      if (index >= 0 && index < 4) {
+        quadrant = QUADRANT_TEXT[0];
+        hemisphere = [AXES_TEXT[1], AXES_TEXT[0]];
+      }
+      else if (index >= 4 && index < 8) {
+        quadrant = QUADRANT_TEXT[1];
+        hemisphere = [AXES_TEXT[0], AXES_TEXT[3]];
+      }
+      else if (index >= 8 && index < 12) {
+        quadrant = QUADRANT_TEXT[2];
+        hemisphere = [AXES_TEXT[3], AXES_TEXT[2]];
+      }
+      else if (index >= 12 && index < 16) {
+        quadrant = QUADRANT_TEXT[3];
+        hemisphere = [AXES_TEXT[2], AXES_TEXT[1]];
+      }
       return {
         id: trait,
         strength: Math.ceil((Math.random() * MAX_STRENGTH)),
-        start: start,
-        end: end,
-        text_coord: [AXES_LENGTH * TEXT_MARGIN * Math.cos(middle), AXES_LENGTH * TEXT_MARGIN * Math.sin(middle)],
-        text_angle: middle
+        start: start, //start angle
+        end: end, //end angle
+        text_coord: [AXES_LENGTH * TEXT_MARGIN * Math.cos(middle - (Math.PI / 2)), AXES_LENGTH * TEXT_MARGIN * Math.sin(middle - (Math.PI / 2))],
+        text_angle: middle,
+        quadrant: quadrant,
+        hemisphere: hemisphere
       }
     });
 
+    console.log(trait_strengths);
     var draw_traits = d3.svg.arc()
         .innerRadius(0)
         .outerRadius(function (d) {
@@ -91,7 +116,8 @@
     .enter()
     .append("path")
     .attr("class", "trait")
-    .attr("d", draw_traits);
+    .attr("d", draw_traits)
+    .style("fill", UNHIGHLIGHTED_TRAIT_COLOR);
 
     svg.selectAll(".circle")
     .data(circles_radii)
@@ -110,8 +136,8 @@
     .attr("text-anchor", "middle")
     .attr("font-family", "Arial")
     .attr("transform", function (d, i) {
-      var angle = (90 + d.text_angle * 180 / Math.PI);
-      if(i >= 0 && i < 8) { // these are the traits whose texts needs to be reversed 180 degrees
+      var angle = (d.text_angle * 180 / Math.PI);
+      if(i >= 4 && i < 12) { // these are the traits whose texts needs to be reversed 180 degrees
         console.log(i)
         angle += 180;
       }
@@ -131,21 +157,42 @@
     .attr("text-anchor", "middle")
     .attr("font-family", "Arial")
     .attr("transform", function (d, i) {
-      var angle = 45 + i * 90;
+      var angle = 45 + (i - 1) * 90;
       var xCoord = AXES_LENGTH * QUADRANT_MARGIN * Math.cos(angle * Math.PI / 180);
       var yCoord = AXES_LENGTH * QUADRANT_MARGIN * Math.sin(angle * Math.PI / 180);
 
-      if(i !== 0 && i !== 1) {
+      if(i === 0) { //top-right quadrant
         angle += 90;
       }
-      else {
+      else if(i === 1) { // bottom-right quadrant
         angle -= 90;
+      }
+      else if(i === 2) { // bottom-left quadrant
+        angle -= 90;
+      }
+      else if(i === 3) { //top-left quadrant
+        angle += 90;
       }
       return "translate(" + xCoord + "," + yCoord + ") rotate(" + angle + ")";
     })
     .text(function (d) {
       return d;
     })
+    .style("cursor", "default")
+    .on("mouseover", function (d) {
+      var quadrantText = d;
+      console.log(quadrantText);
+      svg.selectAll(".trait")
+      .style("fill", function (d) {
+        console.log(d);
+        if (d.quadrant == quadrantText) {
+          return HIGHLIGHTED_TRAIT_COLOR;
+        }
+        else {
+          return UNHIGHLIGHTED_TRAIT_COLOR;
+        }
+      });
+    });
 
     //fill axes text
     svg.selectAll(".axes_text")
@@ -198,6 +245,19 @@
     .text(function (d) {
       return d;
     })
+    .style("cursor", "default")
+    .on("mouseover", function (d) {
+      var hemisphereText = d;
+      svg.selectAll(".trait")
+      .style("fill", function (d) {
+        if (d.hemisphere.indexOf(hemisphereText) > -1) {
+          return HIGHLIGHTED_TRAIT_COLOR;
+        }
+        else {
+          return UNHIGHLIGHTED_TRAIT_COLOR;
+        }
+      });
+    });
 
     //draw the lines / axes
     var lineData = [];
@@ -217,35 +277,48 @@
       {"x": -1 * AXES_LENGTH, "y": 0}]
     ];
 
-    var line = d3.svg.line()
-    .x(function(d) {
-      return d.x;
-    })
-    .y(function(d) {
-      return d.y;
-    });
+    //draw lines
+    drawLines(svg, lineData, {className: ".line", strokeColor: LINE_COLOR, strokeWidth: LINE_WIDTH});
 
-    svg.selectAll(".line")
-    .data(lineData)
-    .enter()
-    .append("path")
-    .attr("d", function (d) {
-      console.log(d);
-      return line(d);
-    })
-    .attr("stroke", LINE_COLOR)
-    .attr("stroke-width", LINE_WIDTH);
+    //draw axes
+    drawLines(svg, axesData, {className: ".axes", strokeColor: AXES_COLOR, strokeWidth: AXES_WIDTH});
 
-    svg.selectAll(".axes")
-    .data(axesData)
-    .enter()
-    .append("path")
-    .attr("d", function (d) {
-      console.log(d);
-      return line(d);
-    })
-    .attr("stroke", AXES_COLOR)
-    .attr("stroke-width", AXES_WIDTH);
+    function drawLines(svg, data, config) {
+      var className = config.className;
+      var strokeColor = config.strokeColor;
+      var strokeWidth = config.strokeWidth;
+
+      var line = d3.svg.line()
+      .x(function(d) {
+        return d.x;
+      })
+      .y(function(d) {
+        return d.y;
+      });
+      svg.selectAll(className)
+      .data(data)
+      .enter()
+      .append("path")
+      .attr("d", function (d) {
+        console.log(d);
+        return line(d);
+      })
+      .attr("stroke", strokeColor)
+      .attr("stroke-width", strokeWidth);
+    }
+
+    function highlightQuadrant(quadrant) {
+      svg.selectAll(".trait")
+      .style("fill", function (d) {
+        console.log(d);
+        if (d.quadrant == quadrant) {
+          return HIGHLIGHTED_TRAIT_COLOR;
+        }
+        else {
+          return UNHIGHLIGHTED_TRAIT_COLOR;
+        }
+      });
+    }
   </script>
   </body>
 </html>
