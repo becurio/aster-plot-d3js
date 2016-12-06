@@ -8,11 +8,21 @@
   </style>
   </head>
   <body>
-    <button type="button" onclick="highlightQuadrant('Relating to Others')">Relating to Others</button>
-    <button type="button" onclick="highlightQuadrant('Risk & Novelty')">Risk & Novelty</button>
-    <button type="button" onclick="highlightQuadrant('Task Execution')">Task Execution</button>
-    <button type="button" onclick="highlightQuadrant('Maturity & Judgment')">Maturity & Judgment</button>
+    <div>
+      <button type="button" onclick="highlightQuadrant('Relating to Others')">Relating to Others</button>
+      <button type="button" onclick="highlightQuadrant('Risk & Novelty')">Risk & Novelty</button>
+      <button type="button" onclick="highlightQuadrant('Task Execution')">Task Execution</button>
+      <button type="button" onclick="highlightQuadrant('Maturity & Judgment')">Maturity & Judgment</button>
+    </div>
+    <div>
+      <button type="button" onclick="highlightAxes('Outward')">Outward</button>
+      <button type="button" onclick="highlightAxes('Inward')">Inward</button>
+      <button type="button" onclick="highlightAxes('Assertion')">Assertion</button>
+      <button type="button" onclick="highlightAxes('Growth')">Growth</button>
+    </div>
   <script>
+
+    /** constants you can change to customize the chart's look **/
     var width = 650;
     var height = 650;
     var MAX_STRENGTH = 8;
@@ -23,6 +33,10 @@
     'Political', 'Superficial', 'Idealistic', 'Mature'];
     var UNHIGHLIGHTED_TRAIT_COLOR = "rgba(230,81,0,0.7)";
     var HIGHLIGHTED_TRAIT_COLOR = "rgba(230,81,0,1)";
+    var TRAIT_TEXT_SIZE = "12px";
+    var TRAIT_TEXT_FONT = "Arial";
+    var TRAIT_TEXT_WEIGHT = "normal";
+    var TRAIT_TEXT_COLOR = "black";
 
     var CIRCLE_WIDTH = 1.5;
     var SPACE_BETWEEN_CIRCLE = width / (MAX_STRENGTH * 3.33);
@@ -31,19 +45,50 @@
     var LINE_WIDTH = 1.25;
 
     var AXES_TEXT = ['Growth', 'Outward', 'Assertion', 'Inward'];
+    var AXES_TEXT_SIZE = "12px";
+    var AXES_TEXT_FONT = "Arial";
+    var AXES_TEXT_WEIGHT = "normal;"
+    var AXES_TEXT_COLOR = "black";
     var AXES_COLOR = "rgb(10,10,10)";
     var AXES_WIDTH = 5;
     var AXES_LENGTH = Math.sqrt(1.5) * width / 3.25;
     var AXES_MARGIN = 1.05;
-    var QUADRANT_TEXT = ['Relating to Others', 'Risk & Novelty', 'Task Execution', 'Maturity & Judgment'];
-    var QUADRANT_MARGIN = 1.15;
 
+    var QUADRANT_TEXT = ['Relating to Others', 'Risk & Novelty', 'Task Execution', 'Maturity & Judgment'];
+    var QUADRANT_TEXT_SIZE = "14px";
+    var QUADRANT_TEXT_FONT = "Arial";
+    var QUADRANT_TEXT_WEIGHT=  "normal";
+    var QUADRANT_TEXT_COLOR = "black";
+    var QUADRANT_MARGIN = 1.15;
+    /****--------------------****/
+
+    var DEG_TO_RAD = Math.PI / 180;
+
+    // draw the initial svg space
     var svg = d3.select("body")
         .append("svg")
         .attr("width", width)
         .attr("height", height)
         .append("g")
-        .attr("transform", "translate(" + width / 2 + "," + height / 2 + " )");
+        .attr("transform", "translate(" + width / 2 + "," + height / 2 + " )")
+        .on('mousemove', function () {
+          var coordinates = [0,0];
+          coordinates = d3.mouse(this);
+          var xCoord = coordinates[0];
+          var yCoord = coordinates[1];
+          if (xCoord > 0 && yCoord < 0) {
+            highlightQuadrant(QUADRANT_TEXT[0]);
+          }
+          else if (xCoord > 0 && yCoord > 0) {
+            highlightQuadrant(QUADRANT_TEXT[1]);
+          }
+          else if (xCoord < 0 && yCoord > 0) {
+            highlightQuadrant(QUADRANT_TEXT[2]);
+          }
+          else if (xCoord < 0 && yCoord < 0) {
+            highlightQuadrant(QUADRANT_TEXT[3]);
+          }
+        });
 
     // draws "strengths" circles onto svg
     var circles_radii = [];
@@ -54,7 +99,6 @@
 
     var draw_circles = d3.svg.arc()
         .innerRadius(function (d) {
-          console.log(d);
           return d;
         })
         .outerRadius(function (d) {
@@ -69,22 +113,22 @@
       var end = (index + 1) / (TRAITS.length / 2) * Math.PI;
       var middle = (start + end) / 2;
       var quadrant;
-      var hemisphere;
+      var axes;
       if (index >= 0 && index < 4) {
         quadrant = QUADRANT_TEXT[0];
-        hemisphere = [AXES_TEXT[1], AXES_TEXT[0]];
+        axes = [AXES_TEXT[1], AXES_TEXT[0]];
       }
       else if (index >= 4 && index < 8) {
         quadrant = QUADRANT_TEXT[1];
-        hemisphere = [AXES_TEXT[0], AXES_TEXT[3]];
+        axes = [AXES_TEXT[0], AXES_TEXT[3]];
       }
       else if (index >= 8 && index < 12) {
         quadrant = QUADRANT_TEXT[2];
-        hemisphere = [AXES_TEXT[3], AXES_TEXT[2]];
+        axes = [AXES_TEXT[3], AXES_TEXT[2]];
       }
       else if (index >= 12 && index < 16) {
         quadrant = QUADRANT_TEXT[3];
-        hemisphere = [AXES_TEXT[2], AXES_TEXT[1]];
+        axes = [AXES_TEXT[2], AXES_TEXT[1]];
       }
       return {
         id: trait,
@@ -92,13 +136,13 @@
         start: start, //start angle
         end: end, //end angle
         text_coord: [AXES_LENGTH * TEXT_MARGIN * Math.cos(middle - (Math.PI / 2)), AXES_LENGTH * TEXT_MARGIN * Math.sin(middle - (Math.PI / 2))],
-        text_angle: middle,
+        text_angle: middle, // where the text should be plaed relative to the center of the chart
         quadrant: quadrant,
-        hemisphere: hemisphere
+        axes: axes
       }
     });
 
-    console.log(trait_strengths);
+    // colors in the traits based on their start angle and end angle
     var draw_traits = d3.svg.arc()
         .innerRadius(0)
         .outerRadius(function (d) {
@@ -131,14 +175,14 @@
     .data(trait_strengths)
     .enter()
     .append("text")
-    .style("fill", "black")
-    .style("font-size", "12px")
+    .style("fill", TRAIT_TEXT_COLOR)
+    .style("font-size", TRAIT_TEXT_SIZE)
     .attr("text-anchor", "middle")
-    .attr("font-family", "Arial")
+    .attr("font-family", TRAIT_TEXT_FONT)
+    .attr("font-weight", TRAIT_TEXT_WEIGHT)
     .attr("transform", function (d, i) {
-      var angle = (d.text_angle * 180 / Math.PI);
-      if(i >= 4 && i < 12) { // these are the traits whose texts needs to be reversed 180 degrees
-        console.log(i)
+      var angle = (d.text_angle / DEG_TO_RAD); // some fancy trignometry to get the text at the correct anlge
+      if(i >= 4 && i < 12) { // these are the traits whose texts needs to be reversed 180 degrees (i.e. the traits on the bottom half of the graph)
         angle += 180;
       }
       return "translate(" + d.text_coord[0] + "," + d.text_coord[1] + ") rotate(" + angle + ")";
@@ -152,14 +196,15 @@
     .data(QUADRANT_TEXT)
     .enter()
     .append("text")
-    .style("fill", "black")
-    .style("font-size", "14px")
+    .style("fill", QUADRANT_TEXT_COLOR)
+    .style("font-size", QUADRANT_TEXT_SIZE)
     .attr("text-anchor", "middle")
-    .attr("font-family", "Arial")
-    .attr("transform", function (d, i) {
+    .attr("font-family", QUADRANT_TEXT_FONT)
+    .attr("font-weight", QUADRANT_TEXT_WEIGHT)
+    .attr("transform", function (d, i) { // more fancy trig..
       var angle = 45 + (i - 1) * 90;
-      var xCoord = AXES_LENGTH * QUADRANT_MARGIN * Math.cos(angle * Math.PI / 180);
-      var yCoord = AXES_LENGTH * QUADRANT_MARGIN * Math.sin(angle * Math.PI / 180);
+      var xCoord = AXES_LENGTH * QUADRANT_MARGIN * Math.cos(angle * DEG_TO_RAD);
+      var yCoord = AXES_LENGTH * QUADRANT_MARGIN * Math.sin(angle * DEG_TO_RAD);
 
       if(i === 0) { //top-right quadrant
         angle += 90;
@@ -181,17 +226,7 @@
     .style("cursor", "default")
     .on("mouseover", function (d) {
       var quadrantText = d;
-      console.log(quadrantText);
-      svg.selectAll(".trait")
-      .style("fill", function (d) {
-        console.log(d);
-        if (d.quadrant == quadrantText) {
-          return HIGHLIGHTED_TRAIT_COLOR;
-        }
-        else {
-          return UNHIGHLIGHTED_TRAIT_COLOR;
-        }
-      });
+      highlightQuadrant(quadrantText);
     });
 
     //fill axes text
@@ -199,43 +234,44 @@
     .data(AXES_TEXT)
     .enter()
     .append("text")
-    .style("fill", "black")
-    .style("font-size", "12px")
-    .attr("text-anchor", function (d, i) {
+    .style("fill", AXES_TEXT_COLOR)
+    .style("font-size", AXES_TEXT_SIZE)
+    .attr("font-family", AXES_TEXT_FONT)
+    .attr("font-weight", AXES_TEXT_WEIGHT)
+    .attr("text-anchor", function (d, i) { //axes text labels text-anchor positioning
       switch(i) {
         case 0:
-          return "start";
+          return "start";  // right axis
           break;
         case 1:
-          return "middle"
+          return "middle" // top axis
           break;
         case 2:
-          return "end"
+          return "end" // left axis
           break;
         case 3:
-          return "middle"
+          return "middle" // bottom axis
           break;
       }
     })
-    .attr("font-family", "Arial")
     .attr("transform", function (d, i) {
       var xCoord;
       var yCoord;
       var lengthWithMargin = AXES_LENGTH * AXES_MARGIN;
       switch(i) {
-        case 0:
+        case 0: // right axis text position
           xCoord = lengthWithMargin;
           yCoord = 0;
           break;
-        case 1:
+        case 1: // top axis text
           xCoord = 0;
           yCoord = -1 * lengthWithMargin;
           break;
-        case 2:
+        case 2: // left axis
           xCoord = -1 * lengthWithMargin;
           yCoord = 0;
           break;
-        case 3:
+        case 3: // bottom axis
           xCoord = 0;
           yCoord = lengthWithMargin;
           break;
@@ -247,16 +283,8 @@
     })
     .style("cursor", "default")
     .on("mouseover", function (d) {
-      var hemisphereText = d;
-      svg.selectAll(".trait")
-      .style("fill", function (d) {
-        if (d.hemisphere.indexOf(hemisphereText) > -1) {
-          return HIGHLIGHTED_TRAIT_COLOR;
-        }
-        else {
-          return UNHIGHLIGHTED_TRAIT_COLOR;
-        }
-      });
+      var axesText = d;
+      highlightAxes(axesText);
     });
 
     //draw the lines / axes
@@ -300,11 +328,23 @@
       .enter()
       .append("path")
       .attr("d", function (d) {
-        console.log(d);
         return line(d);
       })
       .attr("stroke", strokeColor)
       .attr("stroke-width", strokeWidth);
+    }
+
+    // functions to call to highlight the axes or quadrants. Pass in the axis / quadrant name as the parameter.
+    function highlightAxes(axes) {
+      svg.selectAll(".trait")
+      .style("fill", function (d) {
+        if (d.axes.indexOf(axes) > -1) {
+          return HIGHLIGHTED_TRAIT_COLOR;
+        }
+        else {
+          return UNHIGHLIGHTED_TRAIT_COLOR;
+        }
+      });
     }
 
     function highlightQuadrant(quadrant) {
